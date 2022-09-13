@@ -9,7 +9,8 @@ seurat.process(
   counts_name,
   count.cutoff = 10000,
   mito.cutoff = 10,
-  rps.cutoff = 10
+  rps.cutoff = 10,
+  cc_adjust = FALSE
 )
 }
 \arguments{
@@ -22,6 +23,8 @@ seurat.process(
 \item{mito.cutoff}{Cutoff of percent mitochondrial genes per cell, default 10}
 
 \item{rps.cutoff}{Cutoff of percent ribosomal genes per cell, default 10}
+
+\item{cc_adjust}{Boolean, whether to regress out cell cycle scores}
 }
 \value{
 Seurat object that has been QC'd, SCTransformed, PCA'd, Clustered and UMAP.
@@ -34,4 +37,6 @@ for (i in 1:length(gex_obj)) {
 gex_obj[[i]] <-
   seurat.process(gex_obj[[i]], counts_name = gex_names[[i]])
 }
+# with future
+combined.dat <- future.apply::future_lapply(combined.dat, seurat.process, future.seed = TRUE)
 }

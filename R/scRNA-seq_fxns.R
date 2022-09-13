@@ -82,18 +82,24 @@ soupx.load.multi <- function(raw, filtered, clusters) {
 #' seq2.dat <- mclapply(snames, function(x) load.seur.data(x, "rerun"), mc.cores = 4)
 #' snames <- paste(snames, "seq2", sep="_")
 #' names(seq2.dat) <- snames
-
-load.seur.data <- function(dir, s, extra="") {
+load.seur.data <- function(dir, s, extra = "") {
   dpath <- paste(dir,
                  extra,
                  s,
                  'outs/filtered_feature_bc_matrix/',
                  sep = '/')
   dat.raw <- Read10X(dpath)
-  dat <- CreateSeuratObject(counts = dat.raw$`Gene Expression`, # I guess this assumes multi...
-                            project = s, min.cells = 200, min.features = 200)
+  dat <-
+    CreateSeuratObject(
+      counts = dat.raw$`Gene Expression`,
+      # I guess this assumes multi...
+      project = s,
+      min.cells = 200,
+      min.features = 200
+    )
   dat[["percent.mt"]] <- PercentageFeatureSet(dat, pattern = "^MT-")
-  dat[["percent.ribo"]] <- PercentageFeatureSet(dat, pattern = "^RP[LS]|^MRPL")
+  dat[["percent.ribo"]] <-
+    PercentageFeatureSet(dat, pattern = "^RP[LS]|^MRPL")
   return(dat)
 }
 
@@ -146,8 +152,10 @@ get.percent <- function(seuratObj) {
 #' plot.mito(gex_obj[[5]], title = gex_names[[5]])
 plot.mito <-
   function(seuratObj,
-           mito.cutoff = 10, # I wonder if this information should be saved somewhere in the seurat object
-           rps.cutoff = 10, # I wonder if this information should be saved somewhere in the seurat object
+           mito.cutoff = 10,
+           # I wonder if this information should be saved somewhere in the seurat object
+           rps.cutoff = 10,
+           # I wonder if this information should be saved somewhere in the seurat object
            title = NULL) {
     count_mt <-
       FeatureScatter(seuratObj, feature1 = "nCount_RNA", feature2 = "percent.mt") +
@@ -228,7 +236,7 @@ seurat.counts <-
 #' @param mito.cutoff Cutoff of percent mitochondrial genes per cell, default 10
 #' @param rps.cutoff Cutoff of percent ribosomal genes per cell, default 10
 #' @param cc_adjust Boolean, whether to regress out cell cycle scores
-#' 
+#'
 #' @return Seurat object that has been QC'd, SCTransformed, PCA'd, Clustered and UMAP.
 #' @export
 #'
@@ -239,11 +247,11 @@ seurat.counts <-
 #' }
 #' # with future
 #' combined.dat <- future.apply::future_lapply(combined.dat, seurat.process, future.seed = TRUE)
-
 seurat.process <-
   function(counts,
            counts_name,
-           count.cutoff = 10000, # can we store these options in the seurat object?
+           count.cutoff = 10000,
+           # can we store these options in the seurat object?
            mito.cutoff = 10,
            rps.cutoff = 10,
            cc_adjust = FALSE) {
@@ -254,8 +262,9 @@ seurat.process <-
         min.cells = 10,
         min.features = 200
       )
-    } else { # what is this situation?
-      seuratObj <- counts 
+    } else {
+      # what is this situation?
+      seuratObj <- counts
       DefaultAssay(seuratObj) <- "RNA"
     }
     
@@ -273,14 +282,33 @@ seurat.process <-
     
     # TODO expanding limit to prevent some arbitrary error msg
     # options(future.globals.maxSize = 20971520000)
-    if(cc_adjust){
-      seuratObj <- CellCycleScoring(seuratObj, s.features = s.genes, g2m.features = g2m.genes, set.ident = TRUE)
-      seuratObj <- FindVariableFeatures(seuratObj, selection.method = "vst", nfeatures = 2000)
-      if (dim(seuratObj)[2] < 10000){
-        seuratObj <- SCTransform(seuratObj, ncells = 2000, vars.to.regress = c("S.Score", "G2M.Score"))
+    if (cc_adjust) {
+      seuratObj <-
+        CellCycleScoring(
+          seuratObj,
+          s.features = s.genes,
+          g2m.features = g2m.genes,
+          set.ident = TRUE
+        )
+      seuratObj <-
+        FindVariableFeatures(seuratObj,
+                             selection.method = "vst",
+                             nfeatures = 2000)
+      if (dim(seuratObj)[2] < 10000) {
+        seuratObj <-
+          SCTransform(
+            seuratObj,
+            ncells = 2000,
+            vars.to.regress = c("S.Score", "G2M.Score")
+          )
       }
       else{
-        seuratObj <- SCTransform(seuratObj, ncells = 0.25*ncol(seuratObj), vars.to.regress = c("S.Score", "G2M.Score"))
+        seuratObj <-
+          SCTransform(
+            seuratObj,
+            ncells = 0.25 * ncol(seuratObj),
+            vars.to.regress = c("S.Score", "G2M.Score")
+          )
       }
     }
     else {
@@ -320,7 +348,8 @@ seurat.process <-
 sum.sweep <- function(sample, cores = 1) {
   message("Parameter sweep...")
   
-  if ("future" %in% .packages(TRUE)) # this should proabably be set when loading the libraries
+  if ("future" %in% .packages(TRUE))
+    # this should proabably be set when loading the libraries
     message("Package {future} loaded, setting cores to 1...")
   
   system.time({
@@ -429,10 +458,13 @@ doubFinder <-
     
     message("Selecting pK Value...")
     # alternative method
-    maxima <- which(diff(sign(diff(bcmvn_sample$BCmetric)))==2) 
-    maxima <- maxima[which(bcmvn_sample$BCmetric[maxima] > quantile(bcmvn_sample$BCmetric, 0.5))]
+    maxima <- which(diff(sign(diff(
+      bcmvn_sample$BCmetric
+    ))) == 2)
+    maxima <-
+      maxima[which(bcmvn_sample$BCmetric[maxima] > quantile(bcmvn_sample$BCmetric, 0.5))]
     pK_val <- as.numeric(levels(bcmvn_dat$pK)[maxima[1]])
-
+    
     # peaks <-
     #   bcmvn_sample[bcmvn_sample$BCmetric > (max(bcmvn_sample$BCmetric) / 2),]
     
@@ -532,7 +564,6 @@ doubFinder <-
 #' viz.doubs(gex_doubs[[6]], title = gex_names[[6]])
 #'
 #' dev.off()
-
 viz.doubs <- function(seuratObj, title = "Sample") {
   print(
     DimPlot(seuratObj, reduction = 'umap', group.by = 'doublet') +
@@ -541,7 +572,6 @@ viz.doubs <- function(seuratObj, title = "Sample") {
                                                                     features = "nCount_RNA")
   )
 }
-
 
 #' ComBat Batch-Correct SCT Counts in Seurat Object
 #'
@@ -580,7 +610,7 @@ process.combat <- function(seuratObj, seuratBatch) {
   edata <-
     as.matrix(GetAssayData(seuratObj, assay = "SCT", slot = "data"))
   
-  mod0 <- model.matrix( ~ 1, data = pheno)
+  mod0 <- model.matrix(~ 1, data = pheno)
   
   combat_edata = ComBat(
     dat = edata,

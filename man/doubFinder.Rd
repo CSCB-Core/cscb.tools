@@ -30,4 +30,6 @@ for (i in 1:length(gex_obj)) {
   message(crayon::red$underline$bold(paste0("Saving ", gex_names[[i]])))
   save(gex_doubs, file = here("gex_obj_postDoublet_actual.RData"))
 }
+# with future
+combined.dat <- future.apply::future_lapply(combined.dat, doubFinder, future.seed = TRUE)
 }
