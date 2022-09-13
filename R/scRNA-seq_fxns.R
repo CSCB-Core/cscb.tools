@@ -280,7 +280,7 @@ seurat.process <-
         seuratObj <- SCTransform(seuratObj, ncells = 2000, vars.to.regress = c("S.Score", "G2M.Score"))
       }
       else{
-        seuratObj <- SCTransform(seuratObj, ncells = 10000, vars.to.regress = c("S.Score", "G2M.Score"))
+        seuratObj <- SCTransform(seuratObj, ncells = 0.25*ncol(seuratObj), vars.to.regress = c("S.Score", "G2M.Score"))
       }
     }
     else {
