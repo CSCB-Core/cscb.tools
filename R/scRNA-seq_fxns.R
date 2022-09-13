@@ -61,9 +61,40 @@ soupx.load.multi <- function(raw, filtered, clusters) {
   names(clust) <- cr.clusters$Barcode
   sc = setClusters(sc, clust)
   
-  sc = autoEstCont(sc, soupQuantile = 0.5)
-  out = adjustCounts(sc)
-  return(out)
+  # depending on the read depth, these last two steps may need to be manually adjusted
+  #sc = autoEstCont(sc, soupQuantile = 0.5)
+  #out = adjustCounts(sc)
+  return(sc)
+}
+
+
+#' Load Cell Ranger count data
+#'
+#' @param dir root of CellRanger count output
+#' @param s list of sample names/directories output from CellRanger count
+#' @param extra file path modification if multiple CellRanger count instances exist
+#'
+#' @return Seurat object
+#' @export
+#'
+#' @examples
+#' snames <- c('2hr_1', '2hr_2', '2hr_3', '2hr_ctrl', '2hr_untag', '12hr_1', '12hr_2', '12hr_3')
+#' seq2.dat <- mclapply(snames, function(x) load.seur.data(x, "rerun"), mc.cores = 4)
+#' snames <- paste(snames, "seq2", sep="_")
+#' names(seq2.dat) <- snames
+
+load.seur.data <- function(dir, s, extra="") {
+  dpath <- paste(dir,
+                 extra,
+                 s,
+                 'outs/filtered_feature_bc_matrix/',
+                 sep = '/')
+  dat.raw <- Read10X(dpath)
+  dat <- CreateSeuratObject(counts = dat.raw$`Gene Expression`, # I guess this assumes multi...
+                            project = s, min.cells = 200, min.features = 200)
+  dat[["percent.mt"]] <- PercentageFeatureSet(dat, pattern = "^MT-")
+  dat[["percent.ribo"]] <- PercentageFeatureSet(dat, pattern = "^RP[LS]|^MRPL")
+  return(dat)
 }
 
 #' Adds layers to Seurat object, percent mitochondrial and ribosomal genes
@@ -115,8 +146,8 @@ get.percent <- function(seuratObj) {
 #' plot.mito(gex_obj[[5]], title = gex_names[[5]])
 plot.mito <-
   function(seuratObj,
-           mito.cutoff = 10,
-           rps.cutoff = 10,
+           mito.cutoff = 10, # I wonder if this information should be saved somewhere in the seurat object
+           rps.cutoff = 10, # I wonder if this information should be saved somewhere in the seurat object
            title = NULL) {
     count_mt <-
       FeatureScatter(seuratObj, feature1 = "nCount_RNA", feature2 = "percent.mt") +
@@ -196,7 +227,8 @@ seurat.counts <-
 #' @param count.cutoff Cutoff of counts used in seurat.counts, default 10k
 #' @param mito.cutoff Cutoff of percent mitochondrial genes per cell, default 10
 #' @param rps.cutoff Cutoff of percent ribosomal genes per cell, default 10
-#'
+#' @param cc_adjust Boolean, whether to regress out cell cycle scores
+#' 
 #' @return Seurat object that has been QC'd, SCTransformed, PCA'd, Clustered and UMAP.
 #' @export
 #'
@@ -205,12 +237,16 @@ seurat.counts <-
 #' gex_obj[[i]] <-
 #'   seurat.process(gex_obj[[i]], counts_name = gex_names[[i]])
 #' }
+#' # with future
+#' combined.dat <- future.apply::future_lapply(combined.dat, seurat.process, future.seed = TRUE)
+
 seurat.process <-
   function(counts,
            counts_name,
-           count.cutoff = 10000,
+           count.cutoff = 10000, # can we store these options in the seurat object?
            mito.cutoff = 10,
-           rps.cutoff = 10) {
+           rps.cutoff = 10,
+           cc_adjust = FALSE) {
     if (class(counts)[1] != "Seurat") {
       seuratObj <- CreateSeuratObject(
         counts = counts,
@@ -218,9 +254,9 @@ seurat.process <-
         min.cells = 10,
         min.features = 200
       )
-    } else {
-      seuratObj <- counts
-      seuratObj@active.assay <- "RNA"
+    } else { # what is this situation?
+      seuratObj <- counts 
+      DefaultAssay(seuratObj) <- "RNA"
     }
     
     # Absolutely imperative that these thresholds are set PER SAMPLE
@@ -237,8 +273,19 @@ seurat.process <-
     
     # TODO expanding limit to prevent some arbitrary error msg
     # options(future.globals.maxSize = 20971520000)
-    
-    seuratObj <- SCTransform(seuratObj, ncells = 2000)
+    if(cc_adjust){
+      seuratObj <- CellCycleScoring(seuratObj, s.features = s.genes, g2m.features = g2m.genes, set.ident = TRUE)
+      seuratObj <- FindVariableFeatures(seuratObj, selection.method = "vst", nfeatures = 2000)
+      if (dim(seuratObj)[2] < 10000){
+        seuratObj <- SCTransform(seuratObj, ncells = 2000, vars.to.regress = c("S.Score", "G2M.Score"))
+      }
+      else{
+        seuratObj <- SCTransform(seuratObj, ncells = 0.25*ncol(seuratObj), vars.to.regress = c("S.Score", "G2M.Score"))
+      }
+    }
+    else {
+      seuratObj <- SCTransform(seuratObj, ncells = 2000)
+    }
     seuratObj <- RunPCA(seuratObj)
     
     eb <- ElbowPlot(seuratObj, reduction = "pca")
@@ -273,7 +320,7 @@ seurat.process <-
 sum.sweep <- function(sample, cores = 1) {
   message("Parameter sweep...")
   
-  if ("future" %in% .packages(TRUE))
+  if ("future" %in% .packages(TRUE)) # this should proabably be set when loading the libraries
     message("Package {future} loaded, setting cores to 1...")
   
   system.time({
@@ -374,34 +421,40 @@ plot.pk <- function(sweep.stats.sample,  title = NA) {
 #'   message(crayon::red$underline$bold(paste0("Saving ", gex_names[[i]])))
 #'   save(gex_doubs, file = here("gex_obj_postDoublet_actual.RData"))
 #' }
+#' # with future
+#' combined.dat <- future.apply::future_lapply(combined.dat, doubFinder, future.seed = TRUE)
 doubFinder <-
   function(sample, sweep.stats.sample, rm.doubs = FALSE) {
     bcmvn_sample <- find.pK(sweep.stats.sample) # save this plot
     
     message("Selecting pK Value...")
+    # alternative method
+    maxima <- which(diff(sign(diff(bcmvn_sample$BCmetric)))==2) 
+    maxima <- maxima[which(bcmvn_sample$BCmetric[maxima] > quantile(bcmvn_sample$BCmetric, 0.5))]
+    pK_val <- as.numeric(levels(bcmvn_dat$pK)[maxima[1]])
+
+    # peaks <-
+    #   bcmvn_sample[bcmvn_sample$BCmetric > (max(bcmvn_sample$BCmetric) / 2),]
     
-    peaks <-
-      bcmvn_sample[bcmvn_sample$BCmetric > (max(bcmvn_sample$BCmetric) / 2),]
+    # # consider adding trycatch
+    # # https://stackoverflow.com/questions/12193779/how-to-write-trycatch-in-r
     
-    # consider adding trycatch
-    # https://stackoverflow.com/questions/12193779/how-to-write-trycatch-in-r
-    
-    # pay special attention to the different types of boolean operators in R
-    # https://medium.com/biosyntax/single-or-double-and-operator-and-or-operator-in-r-442f00332d5b
-    for (v in 1:nrow(peaks)) {
-      if (nrow(peaks) == 1) {
-        pK_val <- as.numeric(as.vector(peaks[v, ]$pK))
-        break
-      }
-      else if (peaks[v, ]$BCmetric > peaks[v + 1, ]$BCmetric |
-               is.na(peaks[v + 1, ]$BCmetric)) {
-        pK_val <- as.numeric(as.vector(peaks[v, ]$pK))
-        break
-      }
-      else {
-        next
-      }
-    }
+    # # pay special attention to the different types of boolean operators in R
+    # # https://medium.com/biosyntax/single-or-double-and-operator-and-or-operator-in-r-442f00332d5b
+    # for (v in 1:nrow(peaks)) {
+    #   if (nrow(peaks) == 1) {
+    #     pK_val <- as.numeric(as.vector(peaks[v, ]$pK))
+    #     break
+    #   }
+    #   else if (peaks[v, ]$BCmetric > peaks[v + 1, ]$BCmetric |
+    #            is.na(peaks[v + 1, ]$BCmetric)) {
+    #     pK_val <- as.numeric(as.vector(peaks[v, ]$pK))
+    #     break
+    #   }
+    #   else {
+    #     next
+    #   }
+    # }
     
     message("Homotypic Doublet Proportion Estimation")
     homotypic.prop <-
