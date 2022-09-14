@@ -7,7 +7,7 @@
 \method{plot}{mito}(seuratObj, mito.cutoff = 10, rps.cutoff = 10, title = NULL)
 }
 \arguments{
-\item{seuratObj}{A Seurat object with percent mitochondrial and ribosomal genes calculated with get.percent()}
+\item{seuratObj}{A Seurat object with percent mitochondrial and ribosomal genes calculated with \code{get.percent()}}
 
 \item{mito.cutoff}{Cutoff of percent mitochondrial genes, default 10}
 

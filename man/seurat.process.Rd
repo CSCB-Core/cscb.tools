@@ -30,7 +30,7 @@ seurat.process(
 Seurat object that has been QC'd, SCTransformed, PCA'd, Clustered and UMAP.
 }
 \description{
-Preprocess Seurat object
+Prunes cells from Seurat object that do not meet cutoff criteria. Stores parameter values in \code{seuratObj@assays$RNA@misc} as a data frame.
 }
 \examples{
 for (i in 1:length(gex_obj)) {

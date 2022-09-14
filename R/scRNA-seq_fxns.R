@@ -134,7 +134,7 @@ get.percent <- function(seuratObj) {
 
 #' Plots mitochondrial and ribosomal genes with ggplot2
 #'
-#' @param seuratObj A Seurat object with percent mitochondrial and ribosomal genes calculated with get.percent()
+#' @param seuratObj A Seurat object with percent mitochondrial and ribosomal genes calculated with `get.percent()`
 #' @param mito.cutoff Cutoff of percent mitochondrial genes, default 10
 #' @param rps.cutoff Cutoff of percent ribosomal genes, default 10
 #' @param title Title of ggplot, default NULL
@@ -153,9 +153,7 @@ get.percent <- function(seuratObj) {
 plot.mito <-
   function(seuratObj,
            mito.cutoff = 10,
-           # I wonder if this information should be saved somewhere in the seurat object
            rps.cutoff = 10,
-           # I wonder if this information should be saved somewhere in the seurat object
            title = NULL) {
     count_mt <-
       FeatureScatter(seuratObj, feature1 = "nCount_RNA", feature2 = "percent.mt") +
@@ -229,6 +227,8 @@ seurat.counts <-
   }
 
 #' Preprocess Seurat object
+#' 
+#' Prunes cells from Seurat object that do not meet cutoff criteria. Stores parameter values in `seuratObj@assays$RNA@misc` as a data frame.
 #'
 #' @param counts Seurat object
 #' @param counts_name Name of sample corresponding to seurat object
@@ -263,7 +263,7 @@ seurat.process <-
         min.features = 200
       )
     } else {
-      # what is this situation?
+      # if `counts` is already a Seurat object:
       seuratObj <- counts
       DefaultAssay(seuratObj) <- "RNA"
     }
@@ -276,6 +276,12 @@ seurat.process <-
           nCount_RNA < count.cutoff &
           percent.mt < mito.cutoff &
           percent.rps < rps.cutoff
+      )
+    
+    SeuratObj@assays$RNA@misc <-
+      data.frame (
+        parameter  = c("Count Cutoff", "Mito Cutoff", "Ribo Cutoff", "CC Adjust?"),
+        value = c(count.cutoff, mito.cutoff, rps.cutoff, cc_adjust)
       )
     
     # normalize
@@ -610,7 +616,7 @@ process.combat <- function(seuratObj, seuratBatch) {
   edata <-
     as.matrix(GetAssayData(seuratObj, assay = "SCT", slot = "data"))
   
-  mod0 <- model.matrix(~ 1, data = pheno)
+  mod0 <- model.matrix( ~ 1, data = pheno)
   
   combat_edata = ComBat(
     dat = edata,
