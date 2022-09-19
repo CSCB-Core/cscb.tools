@@ -4,12 +4,14 @@
 \alias{process.combat}
 \title{ComBat Batch-Correct SCT Counts in Seurat Object}
 \usage{
-process.combat(seuratObj, seuratBatch)
+process.combat(seuratObj, seuratBatch, merge = FALSE)
 }
 \arguments{
 \item{seuratObj}{A Seurat object with an SCT assay}
 
 \item{seuratBatch}{A Vector of batch labels for each}
+
+\item{merge}{Logical indicating whether to merge; if true, supply vector of Seurat objects as}
 }
 \value{
 Seurat object with combatBatch Assay

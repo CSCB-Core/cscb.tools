@@ -583,6 +583,7 @@ viz.doubs <- function(seuratObj, title = "Sample") {
 #'
 #' @param seuratObj A Seurat object with an SCT assay
 #' @param seuratBatch A Vector of batch labels for each
+#' @param merge Logical indicating whether to merge; if true, supply vector of Seurat objects as 
 #'
 #' @return Seurat object with combatBatch Assay
 #' @export
@@ -608,7 +609,13 @@ viz.doubs <- function(seuratObj, title = "Sample") {
 #'
 #' combat_proccess <-
 #'   process.combat(ComBat_merge, ComBat_merge$comp.ident)
-process.combat <- function(seuratObj, seuratBatch) {
+process.combat <- function(seuratObj, seuratBatch, merge = FALSE) {
+  
+  if (merge == TRUE){
+    seuratObj <- merge(seuratObj)
+  }
+    
+    
   pheno <- seuratObj@meta.data
   
   batch <- seuratBatch
@@ -635,5 +642,4 @@ process.combat <- function(seuratObj, seuratBatch) {
     ScaleData(seuratObj, verbose = TRUE, assay = "combatBatch")
   
   return(seuratObj)
-  
 }
