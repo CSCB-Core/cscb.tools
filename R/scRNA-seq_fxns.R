@@ -44,11 +44,11 @@ library(sva)
 #'
 #' for (i in 1:length(gex_multi_soup_raw)) {
 #'   gex_obj[[i]] <-
-#'     soupx.load.multi(gex_multi_soup_raw[i],
+#'     soupx_load_multi(gex_multi_soup_raw[i],
 #'                      gex_multi_soup_filtered[i],
 #'                      gex_multi_soup_clusters[i])
 #' }
-soupx.load.multi <- function(raw, filtered, clusters) {
+soupx_load_multi <- function(raw, filtered, clusters) {
   drops <- Read10X(raw)
   dat.filtered <-
     Read10X(filtered)
@@ -82,7 +82,7 @@ soupx.load.multi <- function(raw, filtered, clusters) {
 #' seq2.dat <- mclapply(snames, function(x) load.seur.data(x, "rerun"), mc.cores = 4)
 #' snames <- paste(snames, "seq2", sep="_")
 #' names(seq2.dat) <- snames
-load.seur.data <- function(dir, s, extra = "") {
+load_seur_data <- function(dir, s, extra = "") {
   dpath <- paste(dir,
                  extra,
                  s,
@@ -117,7 +117,7 @@ load.seur.data <- function(dir, s, extra = "") {
 #' for (i in 1:length(gex_obj)) {
 #'  gex_obj[[i]] <- get.percent(gex_obj[[i]])
 #' }
-get.percent <- function(seuratObj) {
+get_percent <- function(seuratObj) {
   seuratObj[["percent.mt"]] <-
     PercentageFeatureSet(object = seuratObj,
                          pattern = "^MT-",
@@ -144,13 +144,13 @@ get.percent <- function(seuratObj) {
 #'
 #' @examples
 #'
-#' plot.mito(gex_obj[[1]], title = gex_names[[1]])
-#' plot.mito(gex_obj[[2]], title = gex_names[[2]])
-#' plot.mito(gex_obj[[3]], title = gex_names[[3]])
-#' plot.mito(gex_obj[[4]], title = gex_names[[4]])
-#' plot.mito(gex_obj[[6]], title = gex_names[[6]])
-#' plot.mito(gex_obj[[5]], title = gex_names[[5]])
-plot.mito <-
+#' plot_mito(gex_obj[[1]], title = gex_names[[1]])
+#' plot_mito(gex_obj[[2]], title = gex_names[[2]])
+#' plot_mito(gex_obj[[3]], title = gex_names[[3]])
+#' plot_mito(gex_obj[[4]], title = gex_names[[4]])
+#' plot_mito(gex_obj[[6]], title = gex_names[[6]])
+#' plot_mito(gex_obj[[5]], title = gex_names[[5]])
+plot_mito <-
   function(seuratObj,
            mito.cutoff = 10,
            rps.cutoff = 10,
@@ -195,7 +195,7 @@ plot.mito <-
 #' seurat.counts(gex_obj[[5]], count.cutoff = 65000) + ggtitle(gex_names[[5]])
 #' seurat.counts(gex_obj[[6]], count.cutoff = 60000) + ggtitle(gex_names[[6]])
 #'
-seurat.counts <-
+seurat_counts <-
   function(seuratObj,
            count.cutoff = 10000,
            downsample = 0) {
@@ -247,7 +247,7 @@ seurat.counts <-
 #' }
 #' # with future
 #' combined.dat <- future.apply::future_lapply(combined.dat, seurat.process, future.seed = TRUE)
-seurat.process <-
+seurat_process <-
   function(counts,
            counts_name,
            count.cutoff = 10000,
@@ -351,7 +351,7 @@ seurat.process <-
 #'   message(crayon::red$underline$bold(paste0("Saving ", gex_names[[i]])))
 #'   save(gex_pk, file = here("gex_obj_postDoublet.RData"))
 #' }
-sum.sweep <- function(sample, cores = 1) {
+sum_sweep <- function(sample, cores = 1) {
   message("Parameter sweep...")
   
   if ("future" %in% .packages(TRUE))
@@ -570,7 +570,7 @@ doubFinder <-
 #' viz.doubs(gex_doubs[[6]], title = gex_names[[6]])
 #'
 #' dev.off()
-viz.doubs <- function(seuratObj, title = "Sample") {
+viz_doubs <- function(seuratObj, title = "Sample") {
   print(
     DimPlot(seuratObj, reduction = 'umap', group.by = 'doublet') +
       ggtitle(paste0("Doublet Clusters for ", title)) + FeaturePlot(seuratObj,
@@ -608,8 +608,8 @@ viz.doubs <- function(seuratObj, title = "Sample") {
 #'   )
 #'
 #' combat_proccess <-
-#'   process.combat(ComBat_merge, ComBat_merge$comp.ident)
-process.combat <- function(seuratObj, seuratBatch, merge = FALSE) {
+#'   process_combat(ComBat_merge, ComBat_merge$comp.ident)
+process_combat <- function(seuratObj, seuratBatch, merge = FALSE) {
   
   if (merge == TRUE){
     seuratObj <- merge(seuratObj)
