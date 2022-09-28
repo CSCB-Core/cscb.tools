@@ -278,7 +278,7 @@ seurat_process <-
           percent.rps < rps.cutoff
       )
     
-    SeuratObj@assays$RNA@misc <-
+    seuratObj@assays$RNA@misc <-
       data.frame (
         parameter  = c("Count Cutoff", "Mito Cutoff", "Ribo Cutoff", "CC Adjust?"),
         value = c(count.cutoff, mito.cutoff, rps.cutoff, cc_adjust)
