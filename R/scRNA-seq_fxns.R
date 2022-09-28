@@ -398,7 +398,7 @@ sum_sweep <- function(sample, cores = 1) {
 #' plot.pk(gex_pk[[6]], title = gex_names[[6]])
 #'
 #' dev.off()
-plot.pk <- function(sweep.stats.sample,  title = NA) {
+plot_pk <- function(sweep.stats.sample,  title = NA) {
   bcmvn_sample <- find.pK(sweep.stats.sample)
   x <-
     plot(
