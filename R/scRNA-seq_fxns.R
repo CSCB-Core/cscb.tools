@@ -227,7 +227,7 @@ seurat_counts <-
   }
 
 #' Preprocess Seurat object
-#' 
+#'
 #' Prunes cells from Seurat object that do not meet cutoff criteria. Stores parameter values in `seuratObj@assays$RNA@misc` as a data frame.
 #'
 #' @param counts Seurat object
@@ -583,7 +583,7 @@ viz_doubs <- function(seuratObj, title = "Sample") {
 #'
 #' @param seuratObj A Seurat object with an SCT assay
 #' @param seuratBatch A Vector of batch labels for each
-#' @param merge Logical indicating whether to merge; if true, supply vector of Seurat objects as 
+#' @param merge Logical indicating whether to merge; if true, supply vector of Seurat objects as
 #'
 #' @return Seurat object with combatBatch Assay
 #' @export
@@ -610,12 +610,11 @@ viz_doubs <- function(seuratObj, title = "Sample") {
 #' combat_proccess <-
 #'   process_combat(ComBat_merge, ComBat_merge$comp.ident)
 process_combat <- function(seuratObj, seuratBatch, merge = FALSE) {
-  
-  if (merge == TRUE){
+  if (merge == TRUE) {
     seuratObj <- merge(seuratObj)
   }
-    
-    
+  
+  
   pheno <- seuratObj@meta.data
   
   batch <- seuratBatch
@@ -640,6 +639,52 @@ process_combat <- function(seuratObj, seuratBatch, merge = FALSE) {
   
   seuratObj <-
     ScaleData(seuratObj, verbose = TRUE, assay = "combatBatch")
+  
+  return(seuratObj)
+}
+
+
+#' Delete genes from Seurat object with prefix
+#'
+#' Based on [this GitHub issue.](https://github.com/satijalab/seurat/issues/2610#issuecomment-585935810)
+#'
+#' @param seuratObj Input Seurat object
+#' @param gene_name Prefix of genes to filter out (delete); also takes vector of strings
+#' @param assay Assay, defaults to RNA
+#'
+#' @return Seurat object with deleted genes
+#' @export
+#'
+#' @examples
+#' seuratObj <- del_genes(seuratObj, "HLA", assay = "SCT")
+#' # multiple genes
+#' gene_name_prefixes <- c("HLA", "RPS", "RPL", "IG")
+#' seuratObj <- del_genes(seuratObj, gene_name_prefixes, assay = "SCT")
+del_genes <- function(seuratObj, gene_name_prefix, assay = "RNA") {
+  
+  find_genes_counts <- GetAssayData(seuratObj, assay = assay)
+  
+  for (i in 1:length(gene_name_prefix)) {
+    genes <-
+      which(startsWith(rownames(find_genes_counts), prefix = gene_name_prefix))
+    
+    message(
+      paste0(
+        "Deleting the following genes with prefix ",
+        gene_name_prefix,
+        " from input Seurat object: ",
+        rownames(find_genes_counts)[genes]
+      )
+    )
+    
+    find_genes_counts <- find_genes_counts[-genes,]
+    
+    
+  }
+  
+  seuratObj <-
+    subset(seuratObj, features = rownames(find_genes_counts))
+  
   
   return(seuratObj)
 }
