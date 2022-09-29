@@ -622,7 +622,7 @@ process_combat <- function(seuratObj, seuratBatch, merge = FALSE) {
   edata <-
     as.matrix(GetAssayData(seuratObj, assay = "SCT", slot = "data"))
   
-  mod0 <- model.matrix( ~ 1, data = pheno)
+  mod0 <- model.matrix(~ 1, data = pheno)
   
   combat_edata = ComBat(
     dat = edata,
@@ -656,35 +656,17 @@ process_combat <- function(seuratObj, seuratBatch, merge = FALSE) {
 #' @export
 #'
 #' @examples
-#' seuratObj <- del_genes(seuratObj, "HLA", assay = "SCT")
+#' seuratObj <- del_genes(seuratObj, "HLA")
 #' # multiple genes
 #' gene_name_prefixes <- c("HLA", "RPS", "RPL", "IG")
 #' seuratObj <- del_genes(seuratObj, gene_name_prefixes, assay = "SCT")
-del_genes <- function(seuratObj, gene_name_prefix, assay = "RNA") {
+del_genes <- function(seuratObj, gene_name_prefix) {
   
-  find_genes_counts <- GetAssayData(seuratObj, assay = assay)
-  
-  for (i in 1:length(gene_name_prefix)) {
-    genes <-
-      which(startsWith(rownames(find_genes_counts), prefix = gene_name_prefix))
-    
-    message(
-      paste0(
-        "Deleting the following genes with prefix ",
-        gene_name_prefix,
-        " from input Seurat object: ",
-        rownames(find_genes_counts)[genes]
-      )
-    )
-    
-    find_genes_counts <- find_genes_counts[-genes,]
-    
-    
-  }
-  
-  seuratObj <-
-    subset(seuratObj, features = rownames(find_genes_counts))
-  
-  
+  counts <- GetAssayData(seuratObj, assay = seuratObj@active.assay)
+  counts <-
+    counts[-(which(
+      rownames(counts) %in% gene_name_prefix
+    )), ]
+  seuratObj <- subset(seuratObj, features = rownames(counts))
   return(seuratObj)
 }

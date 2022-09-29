@@ -4,14 +4,14 @@
 \alias{del_genes}
 \title{Delete genes from Seurat object with prefix}
 \usage{
-del_genes(seuratObj, gene_name_prefix, assay = "RNA")
+del_genes(seuratObj, gene_name_prefix)
 }
 \arguments{
 \item{seuratObj}{Input Seurat object}
 
-\item{assay}{Assay, defaults to RNA}
-
 \item{gene_name}{Prefix of genes to filter out (delete); also takes vector of strings}
+
+\item{assay}{Assay, defaults to RNA}
 }
 \value{
 Seurat object with deleted genes
@@ -20,7 +20,7 @@ Seurat object with deleted genes
 Based on \href{https://github.com/satijalab/seurat/issues/2610#issuecomment-585935810}{this GitHub issue.}
 }
 \examples{
-seuratObj <- del_genes(seuratObj, "HLA", assay = "SCT")
+seuratObj <- del_genes(seuratObj, "HLA")
 # multiple genes
 gene_name_prefixes <- c("HLA", "RPS", "RPL", "IG")
 seuratObj <- del_genes(seuratObj, gene_name_prefixes, assay = "SCT")
