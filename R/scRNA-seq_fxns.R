@@ -670,3 +670,39 @@ del_genes <- function(seuratObj, gene_name_prefix) {
   seuratObj <- subset(seuratObj, features = rownames(counts))
   return(seuratObj)
 }
+
+
+#' Fix h5ad to work with cellxgene
+#' 
+#' For some reason, Seurat objects which have been converted to h5ad using SeuratDisk have some sort of indexing issue 
+#' which prevent them from being used with cellxgene or being rewritten after importing into Python. This function
+#' uses Reticulate to call a few lines in Python to fix this issue. Learn more [here](https://github.com/theislab/scvelo/issues/255#issuecomment-739995301).
+#'
+#' @param file Path to h5ad converted from h5Seurat by SeuratDisk
+#' @param file_out Output path, overwrites if blank
+#'
+#' @return In-place function, no return
+#' @export
+#'
+#' @examples
+#' SaveH5Seurat(
+#'   samples.combined,
+#'   filename = "processed/02-annotation/cellxgene_out_UNFILTERED_no4k_doublets.h5Seurat",
+#'   verbose = TRUE,
+#'   overwrite = TRUE
+#' )
+#' 
+#' Convert(
+#'   source = "processed/02-annotation/cellxgene_out_UNFILTERED_no4k_doublets.h5Seurat",
+#'   dest = "h5ad",
+#'   assay = "combatBatch",
+#'   verbose = TRUE,
+#'   overwrite = TRUE
+#' )
+#' 
+#' fix_cellxgene(file = "processed/02-annotation/cellxgene_out_UNFILTERED_no4k_doublets.h5ad")
+fix_cellxgene_py <- function(file, file_out) {
+  reticulate::source_python("fix_cellxgene.py")
+  fix_cellxgene(file = file, file_out = file_out)
+  message(paste0(file, " has been re-written to ", file_out, " with indexing issues fixed."))
+}

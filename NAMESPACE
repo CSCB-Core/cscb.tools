@@ -2,6 +2,7 @@
 
 export(del_genes)
 export(doubFinder)
+export(fix_cellxgene_py)
 export(get_percent)
 export(load_seur_data)
 export(plot_mito)
