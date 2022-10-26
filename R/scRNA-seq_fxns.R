@@ -1,8 +1,8 @@
-library(Seurat)
-library(ggplot2)
-library(DoubletFinder)
-library(SoupX)
-library(sva)
+require(Seurat)
+require(ggplot2)
+require(DoubletFinder)
+require(SoupX)
+require(sva)
 
 #' Load Cell Ranger Multi Results into SoupX
 #'
@@ -702,7 +702,8 @@ del_genes <- function(seuratObj, gene_name_prefix) {
 #' 
 #' fix_cellxgene(file = "processed/02-annotation/cellxgene_out_UNFILTERED_no4k_doublets.h5ad")
 fix_cellxgene_py <- function(file, file_out) {
-  reticulate::source_python("fix_cellxgene.py")
+  require(reticulate)
+  reticulate::source_python("../python/fix_cellxgene.py")
   fix_cellxgene(file = file, file_out = file_out)
   message(paste0(file, " has been re-written to ", file_out, " with indexing issues fixed."))
 }
