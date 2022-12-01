@@ -353,21 +353,14 @@ seurat_process <-
 #' }
 sum_sweep <- function(sample, cores = 1) {
   message("Parameter sweep...")
-  
-  if ("future" %in% .packages(TRUE))
-    # this should proabably be set when loading the libraries
-    message("Package {future} loaded, setting cores to 1...")
-  
-  system.time({
+
+    system.time({
     sweep.res.sample <-
       paramSweep_v3(
         sample,
         PCs = 1:10,
         sct = TRUE,
-        num.cores = if ("future" %in% .packages(TRUE))
-          1
-        else
-          cores
+        num.cores = cores
       )
   })
   
@@ -469,7 +462,7 @@ doubFinder <-
     ))) == 2)
     maxima <-
       maxima[which(bcmvn_sample$BCmetric[maxima] > quantile(bcmvn_sample$BCmetric, 0.5))]
-    pK_val <- as.numeric(levels(bcmvn_dat$pK)[maxima[1]])
+    pK_val <- as.numeric(levels(bcmvn_sample$pK)[maxima[1]])
     
     # peaks <-
     #   bcmvn_sample[bcmvn_sample$BCmetric > (max(bcmvn_sample$BCmetric) / 2),]
@@ -622,7 +615,7 @@ process_combat <- function(seuratObj, seuratBatch, merge = FALSE) {
   edata <-
     as.matrix(GetAssayData(seuratObj, assay = "SCT", slot = "data"))
   
-  mod0 <- model.matrix(~ 1, data = pheno)
+  mod0 <- model.matrix( ~ 1, data = pheno)
   
   combat_edata = ComBat(
     dat = edata,
@@ -661,20 +654,17 @@ process_combat <- function(seuratObj, seuratBatch, merge = FALSE) {
 #' gene_name_prefixes <- c("HLA", "RPS", "RPL", "IG")
 #' seuratObj <- del_genes(seuratObj, gene_name_prefixes, assay = "SCT")
 del_genes <- function(seuratObj, gene_name_prefix) {
-  
   counts <- GetAssayData(seuratObj, assay = seuratObj@active.assay)
   counts <-
-    counts[-(which(
-      rownames(counts) %in% gene_name_prefix
-    )), ]
+    counts[-(which(rownames(counts) %in% gene_name_prefix)),]
   seuratObj <- subset(seuratObj, features = rownames(counts))
   return(seuratObj)
 }
 
 
 #' Fix h5ad to work with cellxgene
-#' 
-#' For some reason, Seurat objects which have been converted to h5ad using SeuratDisk have some sort of indexing issue 
+#'
+#' For some reason, Seurat objects which have been converted to h5ad using SeuratDisk have some sort of indexing issue
 #' which prevent them from being used with cellxgene or being rewritten after importing into Python. This function
 #' uses Reticulate to call a few lines in Python to fix this issue. Learn more [here](https://github.com/theislab/scvelo/issues/255#issuecomment-739995301).
 #'
@@ -691,7 +681,7 @@ del_genes <- function(seuratObj, gene_name_prefix) {
 #'   verbose = TRUE,
 #'   overwrite = TRUE
 #' )
-#' 
+#'
 #' Convert(
 #'   source = "processed/02-annotation/cellxgene_out_UNFILTERED_no4k_doublets.h5Seurat",
 #'   dest = "h5ad",
@@ -699,11 +689,20 @@ del_genes <- function(seuratObj, gene_name_prefix) {
 #'   verbose = TRUE,
 #'   overwrite = TRUE
 #' )
-#' 
+#'
 #' fix_cellxgene(file = "processed/02-annotation/cellxgene_out_UNFILTERED_no4k_doublets.h5ad")
-fix_cellxgene_py <- function(file, file_out) {
-  require(reticulate)
-  reticulate::source_python("../python/fix_cellxgene.py")
+fix_cellxgene_py <- function (file, file_out = NULL)
+{
+  reticulate::source_python(system.file("python", "fix_cellxgene.py", package = "cscb.tools"))
   fix_cellxgene(file = file, file_out = file_out)
-  message(paste0(file, " has been re-written to ", file_out, " with indexing issues fixed."))
+  if (file_out == NULL)
+  {
+    file_out = file
+  }
+  message(paste0(
+    file,
+    " has been re-written to ",
+    file_out,
+    " with indexing issues fixed."
+  ))
 }

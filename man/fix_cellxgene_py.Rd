@@ -4,7 +4,7 @@
 \alias{fix_cellxgene_py}
 \title{Fix h5ad to work with cellxgene}
 \usage{
-fix_cellxgene_py(file, file_out)
+fix_cellxgene_py(file, file_out = NULL)
 }
 \arguments{
 \item{file}{Path to h5ad converted from h5Seurat by SeuratDisk}
