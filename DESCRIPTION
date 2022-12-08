@@ -1,12 +1,14 @@
 Package: cscb.tools
-Title: What the Package Does (One Line, Title Case)
-Version: 0.0.0.9000
+Title: Tools To Streamline Seurat-Based Single-Cell Analysis in R
+Version: 0.9.1
 Authors@R: 
-    person("First", "Last", , "first.last@example.com", role = c("aut", "cre"),
-           comment = c(ORCID = "YOUR-ORCID-ID"))
-Description: What the package does (one paragraph).
-License: `use_mit_license()`, `use_gpl3_license()` or friends to pick a
-    license
+    c(person("Arta", "Seyedian", email = "arta.seyedian@gmail.com", role = c("aut", "cre"),
+           comment = c(ORCID = "0000-0003-4141-4149")),
+    person("David", "Smith", email = "qu4drupole@gmail.com", role = c("aut", "cre"))
+Description: These functions work together to create a coherent workflow for standard single-cell analysis as conducted by the Center of Single Cell Biology at CHOP.
+License: `use_mit_license()`
+VignetteBuilder: knitr
+Suggests: knitr, rmarkdown
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.2.1

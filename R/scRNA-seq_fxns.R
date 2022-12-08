@@ -231,8 +231,8 @@ seurat_counts <-
 #' Prunes cells from Seurat object that do not meet cutoff criteria. Stores parameter values in `seuratObj@assays$RNA@misc` as a data frame.
 #'
 #' @param counts Seurat object
-#' @param counts_name Name of sample corresponding to seurat object
-#' @param count.cutoff Cutoff of counts used in seurat.counts, default 10k
+#' @param counts_name Name of sample corresponding to Seurat object
+#' @param count.cutoff Cutoff of counts used in seurat_counts, default 10k
 #' @param mito.cutoff Cutoff of percent mitochondrial genes per cell, default 10
 #' @param rps.cutoff Cutoff of percent ribosomal genes per cell, default 10
 #' @param cc_adjust Boolean, whether to regress out cell cycle scores
@@ -292,8 +292,8 @@ seurat_process <-
       seuratObj <-
         CellCycleScoring(
           seuratObj,
-          s.features = s.genes,
-          g2m.features = g2m.genes,
+          s.features = cc.genes$s.genes,
+          g2m.features = cc.genes$g2m.genes,
           set.ident = TRUE
         )
       seuratObj <-
@@ -352,16 +352,17 @@ seurat_process <-
 #'   save(gex_pk, file = here("gex_obj_postDoublet.RData"))
 #' }
 sum_sweep <- function(sample, cores = 1) {
+  message(crayon::red$underline$bold(
+    paste0("Finding Parameter Sweep with DoubletFinder")
+  ))
   message("Parameter sweep...")
-
-    system.time({
+  
+  system.time({
     sweep.res.sample <-
-      paramSweep_v3(
-        sample,
-        PCs = 1:10,
-        sct = TRUE,
-        num.cores = cores
-      )
+      paramSweep_v3(sample,
+                    PCs = 1:10,
+                    sct = TRUE,
+                    num.cores = cores)
   })
   
   sweep.stats.sample <-
