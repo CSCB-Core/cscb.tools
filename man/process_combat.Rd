@@ -20,7 +20,7 @@ Seurat object with combatBatch Assay
 ComBat Batch-Correct SCT Counts in Seurat Object
 }
 \examples{
-ComBat_merge <-
+seuratObj <-
   merge(
     rna_seq[[1]],
     y = c(
@@ -39,5 +39,5 @@ ComBat_merge <-
   )
 
 combat_proccess <-
-  process_combat(ComBat_merge, ComBat_merge$comp.ident)
+  process_combat(seuratObj, seuratObj$comp.ident)
 }

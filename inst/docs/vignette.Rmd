@@ -1,0 +1,247 @@
+---
+title: "cscb.tools"
+author: "Arta Seyedian and David Smith"
+date: "`r Sys.Date()`"
+output: 
+  rmarkdown::html_vignette:
+    toc: TRUE
+    toc_depth: 2
+vignette: >
+  %\VignetteIndexEntry{cscb.tools}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+	collapse = TRUE,
+	comment = "#>",
+	eval = FALSE
+)
+```
+
+# Introduction
+
+`{cscb.tools}` is a set of helper wrapper functions designed to work with a Seurat-based approach to single-cell analysis. The standard workflow for CSCB's Seurat-based preprocessing steps are as follows:
+
+
+1. SoupX 
+2. Create Seurat Object 
+3. Mito/Ribo plotting and filtering 
+4. Preprocessing 
+5. DoubletFinder 
+6. Visualization 
+7. (optional) ComBat Batch correction
+
+
+This vignette will provide an overview of each/all of these steps in the context of a single-cell analysis workflow.
+
+## Requirements
+
+The following libraries are required for the proper functioning of these tools:
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+require(Seurat)
+require(ggplot2)
+require(DoubletFinder)
+require(SoupX)
+require(sva)
+require(reticulate)
+```
+
+Additionally, you will need to set up reticulate to use a conda environment with ScanPy. The default environment is `r-reticulate`, so it may be easiest to install to that conda environment:
+
+```
+reticulate::use_condaenv("{Insert Conda Environment Here")
+```
+
+or 
+
+```
+reticulate::conda_install("r-reticulate", "ScanPy")
+```
+
+# General Workflow
+
+Below, we will overview the basic steps in implementing these tools in a single-cell RNA seq analysis.
+
+## SoupX (Multi)
+
+If loading 10x CellRanger `multi` results as part of a VDJ or multiome experiment, you can use `soupx_load_multi` to consolidate all relevant data into a singular SoupX object that can be later converted to a Seurat object.
+
+```{r}
+# Obtain paths for all samples
+gex_multi_soup_raw <-
+  R.utils::getAbsolutePath(Sys.glob(
+    file.path(
+      "../../SCTC-X/Data_Analysis/xxx-vdj-gex/code/02-multi/runs/*_VDJ_GEX/outs/multi/count/raw_feature_bc_matrix/"
+    )
+  ))
+
+gex_multi_soup_filtered <-
+  R.utils::getAbsolutePath(Sys.glob(
+    file.path(
+      "../../SCTC-X/Data_Analysis/xxx-vdj-gex/code/02-multi/runs/*_VDJ_GEX/outs/per_sample_outs/*_VDJ_GEX/count/sample_filtered_feature_bc_matrix/"
+    )
+  ))
+
+gex_multi_soup_clusters <-
+  R.utils::getAbsolutePath(Sys.glob(
+    file.path(
+      "../../SCTC-X/Data_Analysis/xxx-vdj-gex/code/02-multi/runs/*_VDJ_GEX/outs/per_sample_outs/*_VDJ_GEX/count/analysis/clustering/gene_expression_graphclust/clusters.csv"
+    )
+  ))
+
+# setting these to null is important for cell-naming purposes;
+# Seurat will use the relative path set in the name of the absolute paths
+# to generate cell barcodes. Not good.
+names(gex_multi_soup_raw) <- NULL
+names(gex_multi_soup_filtered) <- NULL
+names(gex_multi_soup_clusters) <- NULL
+
+gex_obj <- list()
+```
+
+`adjustCounts` generates plots, so be sure to capture them using `pdf()`:
+
+```{r}
+
+pdf(
+  here("processed/xxx/SoupX_contam_frac.pdf"),
+  height = 8,
+  width = 11
+)
+
+for (i in 1:length(gex_multi_soup_raw)) {
+  gex_obj[[i]] <-
+    soupx_load_multi(gex_multi_soup_raw[i],
+                     gex_multi_soup_filtered[i],
+                     gex_multi_soup_clusters[i])
+  gex_obj[[i]] <- autoEstCont(gex_obj[[i]], soupQuantile = 0.5)
+  gex_obj[[i]] <-  adjustCounts(gex_obj[[i]])
+}
+
+dev.off()
+```
+
+Now, you may use the SoupX ambient RNA calculations to create Seurat objects:
+
+```{r}
+gex_names <- c("a", "b", "c", "d", "e", "f")
+
+for (i in 1:length(gex_obj)) {
+  gex_obj[[i]] <-
+    CreateSeuratObject(gex_obj[[i]], project = gex_names[i])
+}
+
+names(gex_obj) <- gex_names
+```
+
+## Calculating Mitochondrial and Ribosomal Gene Content
+
+`get_percent` calculates both the percent mitochondrial and percent ribosomal genes in every cell. It does so by calling Seurat's `PercentageFeatureSet` for genes beginning with the strings `MT` or `RPS`.
+
+```{r}
+for (i in 1:length(gex_obj)) {
+  gex_obj[[i]] <- get_percent(gex_obj[[i]])
+}
+```
+
+You can then plot the number of read counts vs the number of genes using `seurat_counts` as well as the percentages of mitochondrial and ribosomal genes per cell using `plot_mito`:
+
+```{r}
+seurat_counts(gex_obj[[1]], count.cutoff = 22000) + ggtitle(gex_names[[1]])
+plot_mito(gex_obj[[1]], title = gex_names[[1]])
+```
+
+```{r, echo = FALSE, out.width = "70%", fig.align='center', eval = TRUE}
+knitr::include_graphics("/mnt/isilon/cscb/software/Rpackages/cscb.tools/inst/docs/images/countsvsgenes.png")
+knitr::include_graphics("/mnt/isilon/cscb/software/Rpackages/cscb.tools/inst/docs/images/mito_ribo.png")
+```
+
+## Seurat Preprocessing
+
+The most involved and potentially important function in our single cell analysis workflow is `seurat_process`. This function prunes cells that do not meet certain cutoff criteria and optionally adjusts the overall gene expression profile for cell cycle genes. Here, I will explicitly write out the default arguments, but note that as they are defaults, they do not need to be specified each time.
+
+One argument, which you absolutely need to supply, is `count.cutoff`. This value is the same as the one used in and can be obtained from `seurat_counts`.
+
+```{r}
+
+count_cutoffs <- c(22000, 52000, 10000, 70000, 65000, 60000)
+
+for (i in 1:length(gex_obj)) {
+  gex_obj[[i]] <-
+    seurat_process(
+      gex_obj[[i]],
+      counts_name = gex_names[[i]],
+      count.cutoff = count_cutoffs[i],
+      mito.cutoff = 10,
+      rps.cutoff = 10,
+      cc_adjust = FALSE
+    )
+}
+```
+
+## DoubletFinder
+
+```{r}
+
+gex_pk <- list()
+
+for (i in 1:length(gex_obj)) {
+  message(crayon::red$underline$bold(
+    paste0("Finding Parameter Sweep with DoubletFinder for ", gex_names[[i]])
+  ))
+  gex_pk[[i]] <-
+    sum.sweep(gex_obj[[i]])
+  message(crayon::red$underline$bold(paste0("Saving ", gex_names[[i]])))
+}
+```
+
+```{r}
+pdf(here("processed/01-5_3-comp/ParamSweepPeaks_count_cutoffs.pdf"))
+
+plot_pk(gex_pk[[1]], title = gex_names[[1]])
+plot_pk(gex_pk[[2]], title = gex_names[[2]])
+plot_pk(gex_pk[[3]], title = gex_names[[3]])
+plot_pk(gex_pk[[4]], title = gex_names[[4]])
+plot_pk(gex_pk[[5]], title = gex_names[[5]])
+plot_pk(gex_pk[[6]], title = gex_names[[6]])
+
+dev.off()
+```
+
+
+```{r}
+gex_doubs <- list()
+
+# options(future.globals.maxSize = 2500 * 1024^2)
+
+for (i in 1:length(gex_obj)) {
+  message(crayon::red$underline$bold(paste0(
+    "Finding Doublets with DoubletFinder for ", gex_names[[i]]
+  )))
+  gex_doubs[[i]] <-
+    doubFinder(gex_obj[[i]],
+               sweep.stats.sample = gex_pk[[i]],
+               rm.doubs = TRUE)
+  message(crayon::red$underline$bold(paste0("Saving ", gex_names[[i]])))
+}
+
+pdf(
+  here("processed/xxx/GEX_doubletClusters_removed.pdf"),
+  height = 8,
+  width = 14
+)
+
+viz.doubs(gex_doubs[[1]], title = gex_names[[1]])
+viz.doubs(gex_doubs[[2]], title = gex_names[[2]])
+viz.doubs(gex_doubs[[3]], title = gex_names[[3]])
+viz.doubs(gex_doubs[[4]], title = gex_names[[4]])
+viz.doubs(gex_doubs[[5]], title = gex_names[[5]])
+viz.doubs(gex_doubs[[6]], title = gex_names[[6]])
+
+dev.off()
+```
+
+
+

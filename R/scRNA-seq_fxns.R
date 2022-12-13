@@ -250,7 +250,7 @@ seurat_counts <-
 seurat_process <-
   function(counts,
            counts_name,
-           count.cutoff = 10000,
+           count.cutoff,
            # can we store these options in the seurat object?
            mito.cutoff = 10,
            rps.cutoff = 10,
@@ -352,9 +352,6 @@ seurat_process <-
 #'   save(gex_pk, file = here("gex_obj_postDoublet.RData"))
 #' }
 sum_sweep <- function(sample, cores = 1) {
-  message(crayon::red$underline$bold(
-    paste0("Finding Parameter Sweep with DoubletFinder")
-  ))
   message("Parameter sweep...")
   
   system.time({
@@ -583,7 +580,7 @@ viz_doubs <- function(seuratObj, title = "Sample") {
 #' @export
 #'
 #' @examples
-#' ComBat_merge <-
+#' seuratObj <-
 #'   merge(
 #'     rna_seq[[1]],
 #'     y = c(
@@ -602,7 +599,7 @@ viz_doubs <- function(seuratObj, title = "Sample") {
 #'   )
 #'
 #' combat_proccess <-
-#'   process_combat(ComBat_merge, ComBat_merge$comp.ident)
+#'   process_combat(seuratObj, seuratObj$comp.ident)
 process_combat <- function(seuratObj, seuratBatch, merge = FALSE) {
   if (merge == TRUE) {
     seuratObj <- merge(seuratObj)
@@ -616,7 +613,7 @@ process_combat <- function(seuratObj, seuratBatch, merge = FALSE) {
   edata <-
     as.matrix(GetAssayData(seuratObj, assay = "SCT", slot = "data"))
   
-  mod0 <- model.matrix( ~ 1, data = pheno)
+  mod0 <- model.matrix(~ 1, data = pheno)
   
   combat_edata = ComBat(
     dat = edata,
@@ -657,7 +654,7 @@ process_combat <- function(seuratObj, seuratBatch, merge = FALSE) {
 del_genes <- function(seuratObj, gene_name_prefix) {
   counts <- GetAssayData(seuratObj, assay = seuratObj@active.assay)
   counts <-
-    counts[-(which(rownames(counts) %in% gene_name_prefix)),]
+    counts[-(which(rownames(counts) %in% gene_name_prefix)), ]
   seuratObj <- subset(seuratObj, features = rownames(counts))
   return(seuratObj)
 }
@@ -707,3 +704,70 @@ fix_cellxgene_py <- function (file, file_out = NULL)
     " with indexing issues fixed."
   ))
 }
+
+
+#' Remove Bottom or Top n Cells by nFeature_RNA or nCount_RNA
+#'
+#' @param seuratObj A Seurat object
+#' @param n Number of desired cells to remove
+#' @param nFeature Whether to sort by nFeature or nCount
+#' @param top Top n cells by feature or bottom
+#'
+#' @return A Seurat object sorted by feature and with n cells removed
+#' @export
+#'
+#' @examples
+#' # to remove the bottom 4k cells by nFeature_RNA:
+#' seuratObj <- remove_n_cells(seuratObj, 4000, top = FALSE)
+remove_n_cells <-
+  function(seuratObj,
+           n,
+           nFeature = TRUE,
+           top = TRUE) {
+    if (nFeature & top) {
+      seuratObj@meta.data <-
+        seuratObj@meta.data[order(seuratObj$nFeature_RNA, decreasing = TRUE) , ]
+      
+      seuratObj <-
+        seuratObj[, order(seuratObj$nFeature_RNA)]
+      
+      cells_to_remove <- colnames(seuratObj)[c(1:n)]
+      
+      seuratObj <-
+        seuratObj[, !colnames(seuratObj) %in% cells_to_remove]
+    } else if (nFeature & top == FALSE) {
+      seuratObj@meta.data <-
+        seuratObj@meta.data[order(seuratObj$nFeature_RNA, decreasing = FALSE) , ]
+      
+      seuratObj <-
+        seuratObj[, order(seuratObj$nFeature_RNA)]
+      
+      cells_to_remove <- colnames(seuratObj)[c(1:n)]
+      
+      seuratObj <-
+        seuratObj[, !colnames(seuratObj) %in% cells_to_remove]
+    } else if (nFeature == FALSE & top) {
+      seuratObj@meta.data <-
+        seuratObj@meta.data[order(seuratObj$nCount_RNA, decreasing = TRUE) , ]
+      
+      seuratObj <-
+        seuratObj[, order(seuratObj$nCount_RNA)]
+      
+      cells_to_remove <- colnames(seuratObj)[c(1:n)]
+      
+      seuratObj <-
+        seuratObj[, !colnames(seuratObj) %in% cells_to_remove]
+    } else if (nFeature == FALSE & top == FALSE) {
+      seuratObj@meta.data <-
+        seuratObj@meta.data[order(seuratObj$nCount_RNA, decreasing = FALSE) , ]
+      
+      seuratObj <-
+        seuratObj[, order(seuratObj$nCount_RNA)]
+      
+      cells_to_remove <- colnames(seuratObj)[c(1:n)]
+      
+      seuratObj <-
+        seuratObj[, !colnames(seuratObj) %in% cells_to_remove]
+    }
+    return(seuratObj)
+  }

@@ -7,7 +7,7 @@
 seurat_process(
   counts,
   counts_name,
-  count.cutoff = 10000,
+  count.cutoff,
   mito.cutoff = 10,
   rps.cutoff = 10,
   cc_adjust = FALSE
@@ -16,9 +16,9 @@ seurat_process(
 \arguments{
 \item{counts}{Seurat object}
 
-\item{counts_name}{Name of sample corresponding to seurat object}
+\item{counts_name}{Name of sample corresponding to Seurat object}
 
-\item{count.cutoff}{Cutoff of counts used in seurat.counts, default 10k}
+\item{count.cutoff}{Cutoff of counts used in seurat_counts, default 10k}
 
 \item{mito.cutoff}{Cutoff of percent mitochondrial genes per cell, default 10}
 
