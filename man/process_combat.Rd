@@ -11,7 +11,7 @@ process_combat(seuratObj, seuratBatch, merge = FALSE)
 
 \item{seuratBatch}{A Vector of batch labels for each}
 
-\item{merge}{Logical indicating whether to merge; if true, supply vector of Seurat objects as}
+\item{merge}{Logical indicating whether to merge; if true, supply vector of Seurat objects as seuratObj}
 }
 \value{
 Seurat object with combatBatch Assay

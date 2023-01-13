@@ -4,14 +4,14 @@
 \alias{del_genes}
 \title{Delete genes from Seurat object with prefix}
 \usage{
-del_genes(seuratObj, gene_name_prefix)
+del_genes(seuratObj, gene_name_prefix, assay = "RNA")
 }
 \arguments{
 \item{seuratObj}{Input Seurat object}
 
-\item{gene_name}{Prefix of genes to filter out (delete); also takes vector of strings}
-
 \item{assay}{Assay, defaults to RNA}
+
+\item{gene_name}{Prefix of genes to filter out (delete); also takes vector of strings}
 }
 \value{
 Seurat object with deleted genes

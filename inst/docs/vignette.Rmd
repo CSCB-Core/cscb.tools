@@ -22,7 +22,7 @@ knitr::opts_chunk$set(
 
 # Introduction
 
-`{cscb.tools}` is a set of helper wrapper functions designed to work with a Seurat-based approach to single-cell analysis. The standard workflow for CSCB's Seurat-based preprocessing steps are as follows:
+`{cscb.tools}` is a set of utility wrapper functions designed to work with a Seurat-based approach to single-cell analysis. The standard workflow for CSCB's Seurat-based preprocessing steps are as follows:
 
 
 1. SoupX 
@@ -242,6 +242,79 @@ viz.doubs(gex_doubs[[6]], title = gex_names[[6]])
 
 dev.off()
 ```
+
+## ComBat Batch Correction
+
+The `process_combat` function is a helper function that is used to correct for batch effects in single-cell RNA sequencing (scRNA-seq) data using the ComBat algorithm. It takes in a `seuratObj` object and a `seuratBatch` variable as inputs, and returns the `seuratObj` with corrected data in a new assay called `combatBatch.` This function can be used to apply the ComBat algorithm in a streamlined manner within a Seurat workflow, making the analysis of scRNA-seq data more accurate by removing batch effects. Batch effect can be caused by technical variations between different batches of scRNA-seq data, and removing them is crucial for proper analysis and interpretation of the data.
+
+Note that you can either merge the desired batches yourself prior to calling `process_combat`, or you can create a vector of Seurat objects yourself and have the function do it for you by setting `merge = TRUE` (default FALSE). Here we merged first.
+
+```{r}
+for (i in 1:length(rna_seq)) {
+  rna_seq[[i]] <-
+    RenameCells(rna_seq[[i]],
+                new.names = sub("_[^_]+$", "", colnames(rna_seq[[i]])))
+}
+
+ComBat_merge <-
+  merge(
+    rna_seq[[1]],
+    y = c(
+      rna_seq[[2]],
+      rna_seq[[3]],
+      rna_seq[[4]],
+      rna_seq[[5]],
+      rna_seq[[6]],
+      gex_doubs[[1]],
+      gex_doubs[[2]],
+      gex_doubs[[3]],
+      gex_doubs[[4]],
+      gex_doubs[[5]],
+      gex_doubs[[6]]
+    )
+  )
+
+ComBat_merge <- ComBat_merge[, ComBat_merge$doublet == "Singlet"]
+
+combat_proccess <-
+   process_combat(ComBat_merge, seuratObj$comp.ident)
+```
+
+## Delete Genes from Seurat Object Assay
+
+Sometimes you want to remove certain specific genes from your Seurat object, like mitochondrial genes (`MT-`) or ribosomal genes (`RPS`), or maybe you have a vector of gene names you want to remove instead. You can use `del_genes` to do so.
+
+```{r}
+seuratObj <- del_genes(seuratObj, "HLA")
+# multiple genes
+gene_name_prefixes <- c("HLA", "RPS", "RPL", "IG")
+seuratObj <- del_genes(seuratObj, gene_name_prefixes, assay = "SCT")
+```
+
+## Fixing cellxgene Indexing Issue
+
+The package `SeuratDisk` is helpful for converting between HDF5 filetypes, but has certain kinks that are hard to work out. One of these kinks is the fact that converting a Seurat object to `h5ad` causes an issue with the [var names indexing](https://github.com/theislab/scvelo/issues/255#issuecomment-739995301). Fortunately, there is a solution. This function depends on having Python installed with ScanPy. 
+
+```{r}
+SaveH5Seurat(
+  samples.combined,
+  filename = "processed/02-annotation/cellxgene_out_UNFILTERED_no4k_doublets.h5Seurat",
+  verbose = TRUE,
+  overwrite = TRUE
+)
+
+Convert(
+  source = "processed/02-annotation/cellxgene_out_UNFILTERED_no4k_doublets.h5Seurat",
+  dest = "h5ad",
+  assay = "combatBatch",
+  verbose = TRUE,
+  overwrite = TRUE
+)
+
+fix_cellxgene(file = "processed/02-annotation/cellxgene_out_UNFILTERED_no4k_doublets.h5ad")
+```
+
+
 
 
 

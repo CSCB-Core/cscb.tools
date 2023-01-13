@@ -574,7 +574,7 @@ viz_doubs <- function(seuratObj, title = "Sample") {
 #'
 #' @param seuratObj A Seurat object with an SCT assay
 #' @param seuratBatch A Vector of batch labels for each
-#' @param merge Logical indicating whether to merge; if true, supply vector of Seurat objects as
+#' @param merge Logical indicating whether to merge; if true, supply vector of Seurat objects as seuratObj
 #'
 #' @return Seurat object with combatBatch Assay
 #' @export
@@ -651,7 +651,7 @@ process_combat <- function(seuratObj, seuratBatch, merge = FALSE) {
 #' # multiple genes
 #' gene_name_prefixes <- c("HLA", "RPS", "RPL", "IG")
 #' seuratObj <- del_genes(seuratObj, gene_name_prefixes, assay = "SCT")
-del_genes <- function(seuratObj, gene_name_prefix) {
+del_genes <- function(seuratObj, gene_name_prefix, assay = "RNA") {
   counts <- GetAssayData(seuratObj, assay = seuratObj@active.assay)
   counts <-
     counts[-(which(rownames(counts) %in% gene_name_prefix)), ]
@@ -771,3 +771,63 @@ remove_n_cells <-
     }
     return(seuratObj)
   }
+
+
+#' Prepare ranked gene list for GSEA
+#'
+#' @param DESeq_res DESeq2 Results
+#' @param gene_counts Raw counts file
+#' @param rank Rank by either "log2FC" or "padj"
+#'
+#' @return A named vector with gene names and either log2FC or padj in descending order
+#' @export
+#'
+#' @examples
+#' geneList_res_WTvKO_cond1_input <- prepGeneList(res_WTvKO_cond1, gene_counts)
+#' 
+#' gsea_gene_WTvKO_cond1_sig_genes_tx <- gseGO(
+#'    geneList     = geneList_res_WTvKO_cond1_input,
+#'    OrgDb        = org.Mm.eg.db,
+#'    keyType = "ENSEMBL",
+#'    pAdjustMethod = "BH",
+#'    ont = "BP",
+#'    minGSSize    = 100,
+#'    maxGSSize    = 500,
+#'    pvalueCutoff = 0.10,
+#'    verbose      = TRUE
+#' )
+prepGeneList <- function(DESeq_res, gene_counts, rank = "log2") {
+  geneList <-
+    DESeq_res %>% as.data.frame() %>% rownames_to_column("gene_id")
+  
+  # geneList_res_WTvKO_cond2 <- geneList_res_WTvKO_cond2[geneList_res_WTvKO_cond2$gene_id %in% gene_counts$gene_name,]
+  
+  gene_count_sub <-
+    gene_counts[gene_counts$gene_name %in% geneList$gene_id,][, c("gene_name", "gene_id")] %>% as.data.frame()
+  
+  geneList <-
+    merge(gene_count_sub,
+          geneList,
+          by.x = "gene_name",
+          by.y = "gene_id")
+  
+  if (rank == "padj") {
+    geneList <-
+      geneList[, c("gene_id", "padj")]
+    geneList_input <-
+      geneList$padj
+  } else if (rank == "log2") {
+    geneList <-
+      geneList[, c("gene_id", "log2FoldChange")]
+    geneList_input <-
+      geneList$log2FoldChange
+  }
+  
+  names(geneList_input) <-
+    geneList$gene_id
+  
+  geneList_input <-
+    geneList_input[order(geneList_input, decreasing = TRUE)]
+  
+  return(geneList_input)
+}
