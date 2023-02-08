@@ -3,6 +3,7 @@ require(ggplot2)
 require(DoubletFinder)
 require(SoupX)
 require(sva)
+library(Matrix)
 
 #' Load Cell Ranger Multi Results into SoupX
 #'
@@ -613,7 +614,7 @@ process_combat <- function(seuratObj, seuratBatch, merge = FALSE) {
   edata <-
     as.matrix(GetAssayData(seuratObj, assay = "SCT", slot = "data"))
   
-  mod0 <- model.matrix(~ 1, data = pheno)
+  mod0 <- model.matrix( ~ 1, data = pheno)
   
   combat_edata = ComBat(
     dat = edata,
@@ -654,7 +655,7 @@ process_combat <- function(seuratObj, seuratBatch, merge = FALSE) {
 del_genes <- function(seuratObj, gene_name_prefix, assay = "RNA") {
   counts <- GetAssayData(seuratObj, assay = seuratObj@active.assay)
   counts <-
-    counts[-(which(rownames(counts) %in% gene_name_prefix)), ]
+    counts[-(which(rownames(counts) %in% gene_name_prefix)),]
   seuratObj <- subset(seuratObj, features = rownames(counts))
   return(seuratObj)
 }
@@ -726,7 +727,7 @@ remove_n_cells <-
            top = TRUE) {
     if (nFeature & top) {
       seuratObj@meta.data <-
-        seuratObj@meta.data[order(seuratObj$nFeature_RNA, decreasing = TRUE) , ]
+        seuratObj@meta.data[order(seuratObj$nFeature_RNA, decreasing = TRUE) ,]
       
       seuratObj <-
         seuratObj[, order(seuratObj$nFeature_RNA)]
@@ -734,10 +735,10 @@ remove_n_cells <-
       cells_to_remove <- colnames(seuratObj)[c(1:n)]
       
       seuratObj <-
-        seuratObj[, !colnames(seuratObj) %in% cells_to_remove]
+        seuratObj[,!colnames(seuratObj) %in% cells_to_remove]
     } else if (nFeature & top == FALSE) {
       seuratObj@meta.data <-
-        seuratObj@meta.data[order(seuratObj$nFeature_RNA, decreasing = FALSE) , ]
+        seuratObj@meta.data[order(seuratObj$nFeature_RNA, decreasing = FALSE) ,]
       
       seuratObj <-
         seuratObj[, order(seuratObj$nFeature_RNA)]
@@ -745,10 +746,10 @@ remove_n_cells <-
       cells_to_remove <- colnames(seuratObj)[c(1:n)]
       
       seuratObj <-
-        seuratObj[, !colnames(seuratObj) %in% cells_to_remove]
+        seuratObj[,!colnames(seuratObj) %in% cells_to_remove]
     } else if (nFeature == FALSE & top) {
       seuratObj@meta.data <-
-        seuratObj@meta.data[order(seuratObj$nCount_RNA, decreasing = TRUE) , ]
+        seuratObj@meta.data[order(seuratObj$nCount_RNA, decreasing = TRUE) ,]
       
       seuratObj <-
         seuratObj[, order(seuratObj$nCount_RNA)]
@@ -756,10 +757,10 @@ remove_n_cells <-
       cells_to_remove <- colnames(seuratObj)[c(1:n)]
       
       seuratObj <-
-        seuratObj[, !colnames(seuratObj) %in% cells_to_remove]
+        seuratObj[,!colnames(seuratObj) %in% cells_to_remove]
     } else if (nFeature == FALSE & top == FALSE) {
       seuratObj@meta.data <-
-        seuratObj@meta.data[order(seuratObj$nCount_RNA, decreasing = FALSE) , ]
+        seuratObj@meta.data[order(seuratObj$nCount_RNA, decreasing = FALSE) ,]
       
       seuratObj <-
         seuratObj[, order(seuratObj$nCount_RNA)]
@@ -767,7 +768,7 @@ remove_n_cells <-
       cells_to_remove <- colnames(seuratObj)[c(1:n)]
       
       seuratObj <-
-        seuratObj[, !colnames(seuratObj) %in% cells_to_remove]
+        seuratObj[,!colnames(seuratObj) %in% cells_to_remove]
     }
     return(seuratObj)
   }
@@ -784,7 +785,7 @@ remove_n_cells <-
 #'
 #' @examples
 #' geneList_res_WTvKO_cond1_input <- prepGeneList(res_WTvKO_cond1, gene_counts)
-#' 
+#'
 #' gsea_gene_WTvKO_cond1_sig_genes_tx <- gseGO(
 #'    geneList     = geneList_res_WTvKO_cond1_input,
 #'    OrgDb        = org.Mm.eg.db,
@@ -803,7 +804,7 @@ prepGeneList <- function(DESeq_res, gene_counts, rank = "log2") {
   # geneList_res_WTvKO_cond2 <- geneList_res_WTvKO_cond2[geneList_res_WTvKO_cond2$gene_id %in% gene_counts$gene_name,]
   
   gene_count_sub <-
-    gene_counts[gene_counts$gene_name %in% geneList$gene_id,][, c("gene_name", "gene_id")] %>% as.data.frame()
+    gene_counts[gene_counts$gene_name %in% geneList$gene_id, ][, c("gene_name", "gene_id")] %>% as.data.frame()
   
   geneList <-
     merge(gene_count_sub,
@@ -831,3 +832,56 @@ prepGeneList <- function(DESeq_res, gene_counts, rank = "log2") {
   
   return(geneList_input)
 }
+
+#' Writes Seurat object to file
+#'
+#' A "manual" solution to writing a Seurat object to file
+#'
+#' @param seuratObj a Seurat object with UMAP coordinates
+#' @param assay_write Assay to write to file, default RNA
+#' @param dir_out output directory, default cwd
+#'
+#' @return Nothing
+#' @export
+#'
+#' @examples
+writeSeurat <- function(seuratObj,
+                        assay = "RNA",
+                        dir_out = "./") {
+  
+  seuratObj$barcode <- colnames(seuratObj)
+  seuratObj$UMAP_1 <- seuratObj@reductions$umap@cell.embeddings[, 1]
+  seuratObj$UMAP_2 <- seuratObj@reductions$umap@cell.embeddings[, 2]
+  
+  write.csv(
+    seuratObj@meta.data,
+    file = paste0(
+      dir_out,
+      "cellxgene_metadata.csv",
+      quote = F,
+      row.names = F
+    ))
+    
+    cmatrix <- Seurat::GetAssayData(seuratObj, assay = assay_write, slot = "counts")
+    
+    writeMM(
+      cmatrix,
+      file = paste0(dir_out, "/counts.mtx"))
+      
+      # write dimesnionality reduction matrix, in this example case pca matrix
+      write.csv(
+        seuratObj@reductions$pca@cell.embeddings,
+        file = paste0(dir_out, "pca.csv",
+                      quote =
+                        F,
+                      row.names = F))
+        
+        # write gene names
+        write.table(
+          data.frame('gene' = rownames(cmatrix)),
+          file = paste0(dir_out, "gene_names.csv"),
+          quote = F,
+          row.names = F,
+          col.names = F
+        )
+        }
