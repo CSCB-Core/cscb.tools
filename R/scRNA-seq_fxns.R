@@ -3,7 +3,7 @@ require(ggplot2)
 require(DoubletFinder)
 require(SoupX)
 require(sva)
-library(Matrix)
+require(Matrix)
 
 #' Load Cell Ranger Multi Results into SoupX
 #'
@@ -841,7 +841,7 @@ prepGeneList <- function(DESeq_res, gene_counts, rank = "log2") {
 #' @param assay_write Assay to write to file, default RNA
 #' @param dir_out output directory, default cwd
 #'
-#' @return Nothing
+#' @return Nothing, writes to file
 #' @export
 #'
 #' @examples
@@ -857,7 +857,7 @@ writeSeurat <- function(seuratObj,
     seuratObj@meta.data,
     file = paste0(
       dir_out,
-      "cellxgene_metadata.csv",
+      "/cellxgene_metadata.csv",
       quote = F,
       row.names = F
     ))
@@ -871,7 +871,7 @@ writeSeurat <- function(seuratObj,
       # write dimesnionality reduction matrix, in this example case pca matrix
       write.csv(
         seuratObj@reductions$pca@cell.embeddings,
-        file = paste0(dir_out, "pca.csv",
+        file = paste0(dir_out, "/pca.csv",
                       quote =
                         F,
                       row.names = F))
@@ -879,7 +879,7 @@ writeSeurat <- function(seuratObj,
         # write gene names
         write.table(
           data.frame('gene' = rownames(cmatrix)),
-          file = paste0(dir_out, "gene_names.csv"),
+          file = paste0(dir_out, "/gene_names.csv"),
           quote = F,
           row.names = F,
           col.names = F

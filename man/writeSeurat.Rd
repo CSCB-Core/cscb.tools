@@ -14,7 +14,7 @@ writeSeurat(seuratObj, assay = "RNA", dir_out = "./")
 \item{assay_write}{Assay to write to file, default RNA}
 }
 \value{
-Nothing
+Nothing, writes to file
 }
 \description{
 A "manual" solution to writing a Seurat object to file
