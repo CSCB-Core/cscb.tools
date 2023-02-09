@@ -693,11 +693,11 @@ del_genes <- function(seuratObj, gene_name_prefix, assay = "RNA") {
 fix_cellxgene_py <- function (file, file_out = NULL)
 {
   reticulate::source_python(system.file("python", "fix_cellxgene.py", package = "cscb.tools"))
-  fix_cellxgene(file = file, file_out = file_out)
   if (file_out == NULL)
   {
     file_out = file
   }
+  fix_cellxgene(file = file, file_out = file_out)
   message(paste0(
     file,
     " has been re-written to ",
