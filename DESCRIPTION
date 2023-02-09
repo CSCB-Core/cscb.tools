@@ -4,7 +4,7 @@ Version: 0.9.1
 Authors@R: 
     c(person("Arta", "Seyedian", email = "arta.seyedian@gmail.com", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0003-4141-4149")),
-    person("David", "Smith", email = "qu4drupole@gmail.com", role = c("aut", "cre"))
+    person("David", "Smith", email = "qu4drupole@gmail.com", role = c("aut", "cre")))
 Description: These functions work together to create a coherent workflow for standard single-cell analysis as conducted by the Center of Single Cell Biology at CHOP.
 License: `use_mit_license()`
 VignetteBuilder: knitr
