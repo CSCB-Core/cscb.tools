@@ -862,7 +862,7 @@ writeSeurat <- function(seuratObj,
       row.names = F
     ))
     
-    cmatrix <- Seurat::GetAssayData(seuratObj, assay = assay_write, slot = "counts")
+    cmatrix <- Seurat::GetAssayData(seuratObj, assay = assay, slot = "counts")
     
     writeMM(
       cmatrix,
