@@ -19,3 +19,6 @@ Nothing, writes to file
 \description{
 A "manual" solution to writing a Seurat object to file
 }
+\examples{
+writeSeurat(gex_obj[[i]], assay = "RNA")
+}

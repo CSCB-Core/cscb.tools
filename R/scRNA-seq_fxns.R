@@ -459,9 +459,14 @@ doubFinder <-
     maxima <- which(diff(sign(diff(
       bcmvn_sample$BCmetric
     ))) == 2)
-    maxima <-
-      maxima[which(bcmvn_sample$BCmetric[maxima] > quantile(bcmvn_sample$BCmetric, 0.5))]
+    if (length(maxima) == 0) {
+      maxima <- which.max(bcmvn_sample$BCmetric)
+    } else {
+      maxima <-
+        maxima[which(bcmvn_sample$BCmetric[maxima] > min(bcmvn_sample$BCmetric))]
+    }
     pK_val <- as.numeric(levels(bcmvn_sample$pK)[maxima[1]])
+    
     
     # peaks <-
     #   bcmvn_sample[bcmvn_sample$BCmetric > (max(bcmvn_sample$BCmetric) / 2),]
@@ -845,10 +850,10 @@ prepGeneList <- function(DESeq_res, gene_counts, rank = "log2") {
 #' @export
 #'
 #' @examples
+#' writeSeurat(gex_obj[[i]], assay = "RNA")
 writeSeurat <- function(seuratObj,
                         assay = "RNA",
                         dir_out = "./") {
-  
   seuratObj$barcode <- colnames(seuratObj)
   seuratObj$UMAP_1 <- seuratObj@reductions$umap@cell.embeddings[, 1]
   seuratObj$UMAP_2 <- seuratObj@reductions$umap@cell.embeddings[, 2]
@@ -860,28 +865,30 @@ writeSeurat <- function(seuratObj,
       "/cellxgene_metadata.csv",
       quote = F,
       row.names = F
-    ))
-    
-    cmatrix <- Seurat::GetAssayData(seuratObj, assay = assay, slot = "counts")
-    
-    writeMM(
-      cmatrix,
-      file = paste0(dir_out, "/counts.mtx"))
-      
-      # write dimesnionality reduction matrix, in this example case pca matrix
-      write.csv(
-        seuratObj@reductions$pca@cell.embeddings,
-        file = paste0(dir_out, "/pca.csv",
-                      quote =
-                        F,
-                      row.names = F))
-        
-        # write gene names
-        write.table(
-          data.frame('gene' = rownames(cmatrix)),
-          file = paste0(dir_out, "/gene_names.csv"),
-          quote = F,
-          row.names = F,
-          col.names = F
-        )
-        }
+    )
+  )
+  
+  cmatrix <-
+    Seurat::GetAssayData(seuratObj, assay = assay, slot = "counts")
+  
+  writeMM(cmatrix,
+          file = paste0(dir_out, "/counts.mtx"))
+  
+  # write dimesnionality reduction matrix, in this example case pca matrix
+  write.csv(
+    seuratObj@reductions$pca@cell.embeddings,
+    file = paste0(dir_out, "/pca.csv",
+                  quote =
+                    F,
+                  row.names = F)
+  )
+  
+  # write gene names
+  write.table(
+    data.frame('gene' = rownames(cmatrix)),
+    file = paste0(dir_out, "/gene_names.csv"),
+    quote = F,
+    row.names = F,
+    col.names = F
+  )
+}
