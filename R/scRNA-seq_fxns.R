@@ -50,17 +50,17 @@ require(Matrix)
 #'                      gex_multi_soup_clusters[i])
 #' }
 soupx_load_multi <- function(raw, filtered, clusters) {
-  drops <- Read10X(raw)
+  drops <- SoupX::Read10X(raw)
   dat.filtered <-
-    Read10X(filtered)
+    SoupX::Read10X(filtered)
   
-  sc = SoupChannel(drops, dat.filtered)
+  sc = SoupX::SoupChannel(drops, dat.filtered)
   
   cr.clusters <-
     read.csv(clusters)
   clust <- cr.clusters$Cluster
   names(clust) <- cr.clusters$Barcode
-  sc = setClusters(sc, clust)
+  sc = SoupX::setClusters(sc, clust)
   
   # depending on the read depth, these last two steps may need to be manually adjusted
   #sc = autoEstCont(sc, soupQuantile = 0.5)
@@ -89,18 +89,18 @@ load_seur_data <- function(dir, s, extra = "") {
                  s,
                  'outs/filtered_feature_bc_matrix/',
                  sep = '/')
-  dat.raw <- Read10X(dpath)
+  dat.raw <- Seurat::Read10X(dpath)
   dat <-
-    CreateSeuratObject(
+    Seurat::CreateSeuratObject(
       counts = dat.raw$`Gene Expression`,
       # I guess this assumes multi...
       project = s,
       min.cells = 200,
       min.features = 200
     )
-  dat[["percent.mt"]] <- PercentageFeatureSet(dat, pattern = "^MT-")
+  dat[["percent.mt"]] <- Seurat::PercentageFeatureSet(dat, pattern = "^MT-")
   dat[["percent.ribo"]] <-
-    PercentageFeatureSet(dat, pattern = "^RP[LS]|^MRPL")
+    Seurat::PercentageFeatureSet(dat, pattern = "^RP[LS]|^MRPL")
   return(dat)
 }
 
@@ -120,12 +120,12 @@ load_seur_data <- function(dir, s, extra = "") {
 #' }
 get_percent <- function(seuratObj) {
   seuratObj[["percent.mt"]] <-
-    PercentageFeatureSet(object = seuratObj,
+    Seurat::PercentageFeatureSet(object = seuratObj,
                          pattern = "^MT-",
                          assay = "RNA")
   
   seuratObj[["percent.rps"]] <-
-    PercentageFeatureSet(object = seuratObj,
+    Seurat::PercentageFeatureSet(object = seuratObj,
                          pattern = "^RPS*",
                          assay = "RNA")
   
@@ -157,22 +157,22 @@ plot_mito <-
            rps.cutoff = 10,
            title = NULL) {
     count_mt <-
-      FeatureScatter(seuratObj, feature1 = "nCount_RNA", feature2 = "percent.mt") +
-      geom_hline(yintercept = 0.05,
+      Seurat::FeatureScatter(seuratObj, feature1 = "nCount_RNA", feature2 = "percent.mt") +
+      ggplot2::geom_hline(yintercept = 0.05,
                  linetype = "dashed",
                  color = "black") +
-      theme(legend.position = "none") +
-      ggtitle(title) + geom_hline(yintercept = mito.cutoff) +
-      geom_point(aes(colour = cut(percent.mt, c(0, mito.cutoff))))
+      ggplot2::theme(legend.position = "none") +
+      ggplot2::ggtitle(title) + ggplot2::geom_hline(yintercept = mito.cutoff) +
+      ggplot2::geom_point(aes(colour = cut(percent.mt, c(0, mito.cutoff))))
     
     count_rps <-
-      FeatureScatter(seuratObj, feature1 = "nCount_RNA", feature2 = "percent.rps") +
-      geom_hline(yintercept = 0.05,
+      Seurat::FeatureScatter(seuratObj, feature1 = "nCount_RNA", feature2 = "percent.rps") +
+      ggplot2::geom_hline(yintercept = 0.05,
                  linetype = "dashed",
                  color = "black") +
-      theme(legend.position = "none") +
-      ggtitle(NULL) + geom_hline(yintercept = rps.cutoff) +
-      geom_point(aes(colour = cut(percent.rps, c(0, rps.cutoff))))
+      ggplot2::theme(legend.position = "none") +
+      ggplot2::ggtitle(NULL) + ggplot2::geom_hline(yintercept = rps.cutoff) +
+      ggplot2::geom_point(aes(colour = cut(percent.rps, c(0, rps.cutoff))))
     
     
     return((count_mt + count_rps))
@@ -698,7 +698,7 @@ del_genes <- function(seuratObj, gene_name_prefix, assay = "RNA") {
 fix_cellxgene_py <- function (file, file_out = NULL)
 {
   reticulate::source_python(system.file("python", "fix_cellxgene.py", package = "cscb.tools"))
-  if (file_out == NULL)
+  if (is.null(file_out))
   {
     file_out = file
   }
