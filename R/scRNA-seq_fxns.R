@@ -657,6 +657,13 @@ process_combat <- function(seuratObj, seuratBatch, merge = FALSE) {
 #' # multiple genes
 #' gene_name_prefixes <- c("HLA", "RPS", "RPL", "IG")
 #' seuratObj <- del_genes(seuratObj, gene_name_prefixes, assay = "SCT")
+
+# There's an easy way to do this. for example:
+# DefaultAssay(integration.combined) <- "RNA"
+# integration.combined <- subset(integration.combined, 
+#                                  features = rownames(integration.combined)[!grepl("^(RPS|IG|HLA|MT-|RPL)", rownames(integration.combined))])
+# subsetting will apply to all assays, so if you run the subset on the largest expression matrix it will take care of the smaller assays like integrated too
+
 del_genes <- function(seuratObj, gene_name_prefix, assay = "RNA") {
   counts <- GetAssayData(seuratObj, assay = seuratObj@active.assay)
   counts <-
