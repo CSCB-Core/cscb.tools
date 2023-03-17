@@ -494,8 +494,9 @@ doubFinder <-
     message("Homotypic Doublet Proportion Estimation")
     homotypic.prop <-
       modelHomotypic(sample@meta.data$SCT_snn_res.0.5) ## ex: annotations <- sample@meta.data$ClusteringResults
+    assumed_db <- (0.0008*ncol(sample) - 0.067)/100  
     nExp_poi <-
-      round(0.075 * nrow(sample@meta.data))  ## Assuming 7.5% doublet formation rate - tailor for your dataset
+      round(assumed_db * nrow(sample@meta.data))  ## Assuming 7.5% doublet formation rate - tailor for your dataset
     nExp_poi.adj <- round(nExp_poi * (1 - homotypic.prop))
     
     ## Run DoubletFinder with varying classification stringencies
