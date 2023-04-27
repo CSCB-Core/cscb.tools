@@ -126,7 +126,7 @@ get_percent <- function(seuratObj) {
   
   seuratObj[["percent.rps"]] <-
     Seurat::PercentageFeatureSet(object = seuratObj,
-                         pattern = "^RPS*",
+                         pattern = "^RP[LS]|^MRPL",
                          assay = "RNA")
   
   return(seuratObj)
