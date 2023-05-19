@@ -126,7 +126,7 @@ get_percent <- function(seuratObj) {
   
   seuratObj[["percent.rps"]] <-
     Seurat::PercentageFeatureSet(object = seuratObj,
-                         pattern = "^RPS*",
+                         pattern = "^RP[LS]|^MRPL",
                          assay = "RNA")
   
   return(seuratObj)
@@ -494,8 +494,9 @@ doubFinder <-
     message("Homotypic Doublet Proportion Estimation")
     homotypic.prop <-
       modelHomotypic(sample@meta.data$SCT_snn_res.0.5) ## ex: annotations <- sample@meta.data$ClusteringResults
+    assumed_db <- (0.0008*ncol(sample) - 0.067)/100  
     nExp_poi <-
-      round(0.075 * nrow(sample@meta.data))  ## Assuming 7.5% doublet formation rate - tailor for your dataset
+      round(assumed_db * nrow(sample@meta.data))  ## Assuming 7.5% doublet formation rate - tailor for your dataset
     nExp_poi.adj <- round(nExp_poi * (1 - homotypic.prop))
     
     ## Run DoubletFinder with varying classification stringencies
@@ -657,6 +658,13 @@ process_combat <- function(seuratObj, seuratBatch, merge = FALSE) {
 #' # multiple genes
 #' gene_name_prefixes <- c("HLA", "RPS", "RPL", "IG")
 #' seuratObj <- del_genes(seuratObj, gene_name_prefixes, assay = "SCT")
+
+# There's an easy way to do this. for example:
+# DefaultAssay(integration.combined) <- "RNA"
+# integration.combined <- subset(integration.combined, 
+#                                  features = rownames(integration.combined)[!grepl("^(RPS|IG|HLA|MT-|RPL)", rownames(integration.combined))])
+# subsetting will apply to all assays, so if you run the subset on the largest expression matrix it will take care of the smaller assays like integrated too
+
 del_genes <- function(seuratObj, gene_name_prefix, assay = "RNA") {
   counts <- GetAssayData(seuratObj, assay = seuratObj@active.assay)
   counts <-
